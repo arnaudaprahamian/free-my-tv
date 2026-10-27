@@ -905,6 +905,8 @@
     }
     rows.push({label: tr('Live TV button'), value: boxLabel(),
       step: function (d) { cycle('boxInput', ['live', 'hdmi1', 'hdmi2', 'hdmi3', 'hdmi4'], Prefs.boxInput(), d); renderTop(); }});
+    rows.push({label: tr('Open with the drawer out'), toggle: Prefs.drawerFirst(),
+      step: function () { Prefs.set('drawerFirst', !Prefs.drawerFirst()); }});
     rows.push({label: tr('Shelf'), value: '›', shelf: true, step: function (d) { if (d >= 0) openShelfEdit(); }});
     rows.push({label: tr('About this TV'), value: '›', about: true, step: function (d) { if (d >= 0) openAbout(); }});
     if (TV.canOpenSettings) rows.push({label: tr('TV Settings'), value: '›', step: function (d) { if (d >= 0) tvSettings(); }});
@@ -1521,7 +1523,12 @@
     if (st.zone === Z.CITY) { closeCities(false); return; }
     if (st.zone === Z.KEY) { if (keyAsking) askRemoveKey(false); else closeKey(); return; }
     if (st.zone === Z.ABOUT) { closeAbout(); return; }
-    if (sheetOpen()) { closeSheets(); return; }
+    if (sheetOpen()) {
+      var fromSettings = st.zone === Z.SETTINGS;
+      closeSheets();
+      if (fromSettings) restInDrawer();   // Open with the drawer out: its effect shows as soon as Home Settings closes
+      return;
+    }
     if (st.zone === Z.DRAWER) { closeDrawer(); return; }
     if (st.zone !== Z.SHELF && shelf.length) { st.zone = Z.SHELF; updateFocus(); return; }
     TV.back();
@@ -1791,9 +1798,10 @@
     checkNight();
   });
 
-  /** drawer_first: the home screen rests with the drawer open (shelf in the middle, inputs and weather below). */
+  /** Open with the drawer out (Home Settings; drawer_first in config.properties until the TV chooses): the home screen
+   *  rests with the drawer open (shelf in the middle, inputs and weather below). */
   function restInDrawer() {
-    if (!CONFIG.drawerFirst || !drawerItems.length || st.zone !== Z.SHELF) return;
+    if (!Prefs.drawerFirst() || !drawerItems.length || st.zone !== Z.SHELF) return;
     st.zone = Z.DRAWER;
     st.drawer = 0;
     updateFocus();
